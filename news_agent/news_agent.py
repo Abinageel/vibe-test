@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import tomllib
 import unicodedata
+import warnings
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -21,7 +23,9 @@ from pathlib import Path
 
 import anthropic
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
+
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 HERE = Path(__file__).resolve().parent
 USER_AGENT = "Mozilla/5.0 (compatible; news-agent/1.0)"
@@ -166,16 +170,40 @@ def select_recent(stories: list[Story], hours: int, title_keywords: list[str], n
 # --------------------------------------------------------------------------- Claude
 
 
+OPENROUTER_URL = "https://openrouter.ai/api"
+
+
+def make_client():
+    """Anthropic directly if ANTHROPIC_API_KEY is set, else OpenRouter if OPENROUTER_API_KEY is set."""
+    if os.environ.get("ANTHROPIC_API_KEY") or not os.environ.get("OPENROUTER_API_KEY"):
+        return anthropic.Anthropic()
+    client = anthropic.Anthropic(
+        base_url=OPENROUTER_URL, auth_token=os.environ["OPENROUTER_API_KEY"], api_key=None
+    )
+    client.via_openrouter = True
+    return client
+
+
+def model_name(client, model: str) -> str:
+    """OpenRouter names models differently: claude-opus-5-5 -> anthropic/claude-opus-5.5."""
+    if getattr(client, "via_openrouter", False) and "/" not in model:
+        return "anthropic/" + re.sub(r"-(\d+)-(\d+)$", r"-\1.\2", model)
+    return model
+
+
 def ask_claude(client, model: str, prompt: str, schema: dict, effort: str) -> dict | None:
     """One Claude call that must answer as JSON matching `schema`. None if Claude declined."""
+    extra = {}
+    if not getattr(client, "via_openrouter", False):  # OpenRouter does not accept this setting
+        # If the model declines, the API retries the request on a fallback model.
+        extra = {"betas": [FALLBACK_BETA], "fallbacks": "default"}
     response = client.beta.messages.create(
-        model=model,
+        model=model_name(client, model),
         max_tokens=16000,
-        betas=[FALLBACK_BETA],
-        fallbacks="default",  # if the model declines, the API retries on a fallback model
         thinking={"type": "adaptive"},
         output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
         messages=[{"role": "user", "content": prompt}],
+        **extra,
     )
     if response.stop_reason == "refusal":
         return None
@@ -371,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
     session.headers["User-Agent"] = USER_AGENT
     now = datetime.now(timezone.utc)
 
-    result = run(cfg, anthropic.Anthropic(), session, now)
+    result = run(cfg, make_client(), session, now)
     report = render(cfg, result, now)
 
     out_dir = Path(args.out)

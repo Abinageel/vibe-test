@@ -29,7 +29,7 @@ You can change any of this in `news_agent/config.toml` (see "Changing what it lo
 ## What you need
 
 - Python 3.11 or newer.
-- An Anthropic API key. Get one at https://console.anthropic.com. Each run costs money, usually a few tens of cents.
+- An Anthropic API key (get one at https://console.anthropic.com), or an OpenRouter key (https://openrouter.ai). Each run costs money.
 - An internet connection.
 
 ## Setting it up (once)
@@ -59,6 +59,14 @@ Give it your API key (replace the part in quotes with your own key):
 ```bash
 export ANTHROPIC_API_KEY="your-key-here"
 ```
+
+Or, if you use OpenRouter instead, give it your OpenRouter key:
+
+```bash
+export OPENROUTER_API_KEY="your-key-here"
+```
+
+If both are set, it uses the Anthropic key. Through OpenRouter, everything works the same except one thing: if Claude declines a request, there is no automatic retry on another model, and the item is simply dropped.
 
 ## Running it
 
