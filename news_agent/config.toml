@@ -1,0 +1,46 @@
+# News agent settings. Edit this file to change what the agent looks for.
+
+# What the briefing is about, and who reads it.
+topic  = "artificial intelligence: new models, developer tools, research and industry moves"
+reader = "a tech lead who decides which AI tools, models and practices their engineering team adopts"
+
+# How many items to report, and how far back to look.
+max_items      = 10
+lookback_hours = 24
+
+# The Claude model that ranks, writes and checks the items.
+model = "claude-opus-5-5"
+
+# Sources read first. Each needs a name and an RSS or Atom feed address.
+[[sources]]
+name = "Ars Technica - AI"
+url  = "https://arstechnica.com/ai/feed/"
+
+[[sources]]
+name = "The Verge - AI"
+url  = "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+
+[[sources]]
+name = "TechCrunch - AI"
+url  = "https://techcrunch.com/category/artificial-intelligence/feed/"
+
+[[sources]]
+name = "Hugging Face Blog"
+url  = "https://huggingface.co/blog/feed.xml"
+
+[[sources]]
+name = "Simon Willison's Weblog"
+url  = "https://simonwillison.net/atom/everything/"
+
+[ignore]
+# Plain-English rules. Claude skips any story that matches one of these.
+rules = [
+  "opinion pieces, columns and editorials",
+  "rumours, leaks and unconfirmed reports",
+  "sponsored posts, deals, discounts and product giveaways",
+  "funding rounds under $100 million with no new product or technology",
+  "consumer gadget reviews",
+  "podcast and video episode announcements",
+]
+# Words that throw a story out before Claude sees it (matched in the title, any case).
+title_keywords = ["deal", "sponsored", "giveaway", "podcast", "% off", "opinion"]
